@@ -56,15 +56,20 @@ export class FileSystemEntryService {
   }
 
   async findAll() {
-    const fileSystemEntry = await this.fileSystemEntryModel.find();
+    const fileSystemEntry = await this.fileSystemEntryModel.find({
+      parent: '/',
+    });
 
     return fileSystemEntry;
   }
 
-  async findOne(name: string) {
-    const fileSystemEntry = await this.fileSystemEntryModel.find({
-      name: name,
-    });
+  async FindChild(id: string) {
+    const child = await this.fileSystemEntryModel.find({ parent: id });
+    return child;
+  }
+
+  async findOne(id: string) {
+    const fileSystemEntry = await this.fileSystemEntryModel.findById(id);
 
     return fileSystemEntry;
   }
@@ -112,6 +117,10 @@ export class FileSystemEntryService {
       id,
       updateFileSystemEntryDto,
     ); */
+  }
+
+  async copy(id: string, createFileSystemEntryDto: CreateFileSystemEntryDto) {
+    return id;
   }
 
   async remove(id: string) {

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Res,
 } from '@nestjs/common';
 import { FileSystemEntryService } from './file-system-entry.service';
 import { CreateFileSystemEntryDto } from './dto/create-file-system-entry.dto';
@@ -17,6 +18,13 @@ export class FileSystemEntryController {
     private readonly fileSystemEntryService: FileSystemEntryService,
   ) {}
 
+  @Post(':id')
+  copy(
+    @Param('id') id: string,
+    @Body() createFileSystemEntryDto: CreateFileSystemEntryDto,
+  ) {
+    return this.fileSystemEntryService.copy(id, createFileSystemEntryDto);
+  }
   @Post()
   create(@Body() createFileSystemEntryDto: CreateFileSystemEntryDto) {
     return this.fileSystemEntryService.create(createFileSystemEntryDto);
@@ -27,9 +35,15 @@ export class FileSystemEntryController {
     return this.fileSystemEntryService.findAll();
   }
 
-  @Get(':name')
-  findOne(@Param('name') name: string) {
-    return this.fileSystemEntryService.findOne(name);
+  @Get('entrychild/:id')
+  FindChild(@Param('id') id: string) {
+    return this.fileSystemEntryService.FindChild(id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    console.log();
+    return this.fileSystemEntryService.findOne(id);
   }
 
   @Patch(':id')
