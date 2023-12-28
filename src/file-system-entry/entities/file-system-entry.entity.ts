@@ -25,12 +25,10 @@ export class FileSystemEntry extends Document {
   @Prop({
     index: true,
   })
-  content: string | undefined;
-
-  @Prop({
-    index: true,
-  })
   path: string;
+
+  @Prop()
+  secureUrl: string;
 }
 
 export const FileSystemEntrySchema =

@@ -6,8 +6,10 @@ import {
 import { CreateFileSystemEntryDto } from './dto/create-file-system-entry.dto';
 import { UpdateFileSystemEntryDto } from './dto/update-file-system-entry.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model, Types, isValidObjectId } from 'mongoose';
-import { FileSystemEntry } from './entities/file-system-entry.entity';
+import { Model, isValidObjectId } from 'mongoose';
+import { FileSystemEntry, Types } from './entities/file-system-entry.entity';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class FileSystemEntryService {
@@ -32,10 +34,15 @@ export class FileSystemEntryService {
 
       if (entry) {
         pathP = `${entry.path}/${entry.name}`;
-        data = { ...createFileSystemEntryDto, path: pathP };
+        data = { ...createFileSystemEntryDto, type: Types.Folder, path: pathP };
       }
     } else {
-      data = { ...createFileSystemEntryDto, path: '/', parent: '/' };
+      data = {
+        ...createFileSystemEntryDto,
+        type: Types.Folder,
+        path: '/',
+        parent: '/',
+      };
     }
 
     try {
@@ -75,7 +82,7 @@ export class FileSystemEntryService {
   }
 
   async update(id: string, updateFileSystemEntryDto: UpdateFileSystemEntryDto) {
-    const { content, name, parent, type } = updateFileSystemEntryDto;
+    const { name, parent, type } = updateFileSystemEntryDto;
     const nameEntryDb = await this.fileSystemEntryModel
       .where({ parent })
       .findOne({ name });
@@ -106,7 +113,6 @@ export class FileSystemEntryService {
         entry ? (pathP = `${entry.path}/${entry.name}`) : (pathP = '/');
         updated = await this.fileSystemEntryModel.findByIdAndUpdate(id, {
           name,
-          content,
           parent,
           path: pathP,
         });
@@ -129,5 +135,74 @@ export class FileSystemEntryService {
     child.forEach(async (element) => {
       await this.fileSystemEntryModel.findByIdAndDelete(element.id);
     });
+  }
+
+  async uploadFile(
+    file: Express.Multer.File,
+    parent: string,
+    secureUrl: string,
+  ) {
+    /*     const parent = '/';
+     */ //const { parent } = createFileSystemDto;
+    const { originalname, mimetype } = file;
+    console.log(file);
+
+    const nameEntryDb = await this.fileSystemEntryModel
+      .where({ parent })
+      .findOne({ name: originalname });
+    if (nameEntryDb) throw new BadRequestException('Nombres duplicados');
+    let entry;
+    let pathP: string;
+    let data;
+
+    if (isValidObjectId(parent)) {
+      entry = await this.fileSystemEntryModel.findOne({
+        _id: parent,
+      });
+
+      if (entry) {
+        pathP = `${entry.path}/${entry.name}`;
+        data = {
+          name: originalname,
+          type: `${mimetype.split('/')[1]}`,
+          secureUrl,
+          path: pathP,
+          parent,
+        };
+      }
+    } else {
+      data = {
+        name: originalname,
+        type: `${mimetype.split('/')[1]}`,
+        secureUrl,
+        path: '/',
+        parent: '/',
+      };
+    }
+
+    try {
+      const fileSystemEntry = await this.fileSystemEntryModel.create(data);
+
+      return fileSystemEntry;
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new BadRequestException(
+          `Error de llaves duplicadas en database ${JSON.stringify(
+            error.keyValue,
+          )}`,
+        );
+      }
+      console.log(error);
+      throw new InternalServerErrorException(`No se puede crear el directorio`);
+    }
+  }
+
+  getFile(fileName: string) {
+    const path = join(__dirname, '../../static/uploads/', fileName);
+    console.log(path);
+
+    if (!existsSync(path)) throw new BadRequestException('No file found');
+
+    return path;
   }
 }
